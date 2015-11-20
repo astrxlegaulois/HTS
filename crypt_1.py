@@ -4,7 +4,7 @@
 # ----Imports
 import md5
 import array
-# ----Fonctions originalles traduites en python
+# ----Fonctions originales traduites en python
 
 
 def evalCrossTotal(strMD5):
@@ -34,14 +34,14 @@ def encryptString(strString, strPassword):
     for i in range(0,intStrlen):
         print "i: ",i
         print "char to encode: ",ord(strString[i:i+1])
-        print "passMd5contrib: ",int(strPasswordMD5[i%32:(i+1)%32],16)
-        arrEncryptedValues.append(ord(strString[i:i+1])+int(strPasswordMD5[i%32:(i+1)%32],16)-int(intMD5Total))
+        print "passMd5contrib: ",int(strPasswordMD5[i%32],16)
+        arrEncryptedValues.append(ord(strString[i:i+1])+int(strPasswordMD5[i%32],16)-int(intMD5Total))
         print "left part: ",md5.new(strString[0:i+1]).hexdigest()[0:16]
         print "right part: ",md5.new(str(intMD5Total)).hexdigest()[0:16]
         intMD5Total = evalCrossTotal(md5.new(strString[0:i+1]).hexdigest()[0:16] + md5.new(str(intMD5Total)).hexdigest()[0:16])
         print "new intMD5Total: ",intMD5Total
     return arrEncryptedValues
 
-# ----Fonctions de décryptage
+# ----Fonctions de decryptage
 
 # ----Main
