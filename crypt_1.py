@@ -60,11 +60,11 @@ def getPotentialClearCharsAtPosition(position):
     ans=[]
     if ((position % 20 == 3 or position % 20 == 7) or position % 20 == 11):
         ans.append("-")
-    elif position%20 == 6 :
-        ans.append("O")
-    elif position%20 == 7 :
-        ans.append("E")
     elif position%20 == 8 :
+        ans.append("O")
+    elif position%20 == 9 :
+        ans.append("E")
+    elif position%20 == 10 :
         ans.append("M")
     elif position%20 == 17 :
         ans.append(".")
@@ -99,33 +99,115 @@ def generatePasswordMD5():
             ans[-1].append(hex(j)[2])
     return ans
 
+def generateMD5Total(length=100, init_val=None):
+    """
+    returns the initial list of potential md5Total
+    """
+    if init_val is None:
+        ans = [range(256)]
+    else:
+        ans = [[init_val]]
+    for i in range(length-1):
+        ans.append(range(256))
+    return ans
+
 def refinePotentialClearChars(potentialClearChars,potPasswordMD5,potMD5Total,encryptedText,position):
     """
     Removes all impossible values for potentialClearChars given the potMD5Total hypothesis, the available potPasswordMD5 values and the encrypted value of the char
     """
     for j in [i for i in potentialClearChars[position]]:
-        found=False
-        for k in potPasswordMD5[position%32]:
-            if ord(j)==encryptedText[position]-int(k,16)+potMD5Total:
-                found=True
-                break
-        if not found:
+        try:
+            for k in potPasswordMD5[position%32]:
+                for t in potMD5Total[position]:
+                    if ord(j)==int(encryptedText[position])-int(k,16)+t:
+                        raise Exception('found')
             potentialClearChars[position].remove(j)
-
+        except Exception as e:
+            if e.args[0] == 'found':
+                pass
+            else:
+                raise
+    if not potentialClearChars[position]:
+           raise Exception('Bachata')
 
 def refinePotentialPasswordMD5(potentialClearChars,potPasswordMD5,potMD5Total,encryptedText,position):
     """
     Removes all impossible values for potPasswordMD5 given the potentialClearChars, the potMD5Total hypothesis, and the encrypted value of the char
     """
     for j in [i for i in potPasswordMD5[position%32]]:
-        found=False
-        for k in potentialClearChars[position]:
-            if int(j,16)==encryptedText[position]-ord(k)+potMD5Total:
-                found=True
-                break
-        if not found:
-            potPasswordMD5[position%32].remove(j)
-    
+        try:
+            for k in potentialClearChars[position]:
+                for t in potMD5Total[position]:
+                    if int(j,16)==int(encryptedText[position])-ord(k)+t:
+                        raise Exception('found')
+            potPasswordMD5[position].remove(j)
+        except Exception as e:
+            if e.args[0] == 'found':
+                pass
+            else:
+                raise
+    if not potPasswordMD5[position]:
+           raise Exception('Bachata')
+
+def gen_begin_strings(potentialClearChars,pos_max):
+    """
+    Generates all possible beginning of string until position pos_max, given the potential char list
+    """
+    ans = ['']
+    for i in range(pos_max):
+        temp_ans = []
+        for j in potentialClearChars[i]:
+            for k in ans:
+                temp_ans.append(k + j)
+        ans = temp_ans
+    return ans
+
+def forward_refinePotentialMD5Total(potentialClearChars,potPasswordMD5,potMD5Total,encryptedText,position):
+    """
+    Removes all impossible values at given position for potMD5Total given the potentialClearChars, the potPasswordMD5, and the encrypted values
+    """
+    init_set = set(potMD5Total[position])
+    val_set = set()
+    for s in gen_begin_strings(potentialClearChars,position):
+        for t in potMD5Total[position-1]:
+            value = evalCrossTotal(md5.new(s).hexdigest()[0:16] + md5.new(str(t)).hexdigest()[0:16])
+            val_set.add(value)
+            if init_set<=val_set:
+                return None
+    final_set = init_set & val_set
+    potMD5Total[position] = list(final_set)
+    if not potMD5Total[position]:
+           raise Exception('Bachata')
+
+def backward_refinePotentialMD5Total(potentialClearChars,potPasswordMD5,potMD5Total,encryptedText,position):
+    """
+    Backwards removal of all impossible values at given position for potMD5Total given the potentialClearChars, the potPasswordMD5, and the encrypted values
+    """
+    for j in [i for i in potMD5Total[position]]:
+        try:
+            for k in potentialClearChars[position+1]:
+                for p in potPasswordMD5[position+1]:
+                    for t in potMD5Total[position+1]:
+                        if int(p,16)==int(encryptedText[position+1])-ord(k)+t:
+                            raise Exception('found')
+            potMD5Total[position].remove(j)
+        except Exception as e:
+            if e.args[0] == 'found':
+                pass
+            else:
+                raise
+    if not potMD5Total[position]:
+           raise Exception('Bachata')
+
+def refine(args, position, way='forward'):
+    if way == 'forward':
+       refinePotentialClearChars(*args, position=position)
+       refinePotentialPasswordMD5(*args, position=position)
+       forward_refinePotentialMD5Total(*args, position=position+1)
+    else:
+       backward_refinePotentialMD5Total(*args, position=position)
+       refinePotentialClearChars(*args, position=position)
+       refinePotentialPasswordMD5(*args, position=position)
 
 def decrypt(encryptedString):
     """
@@ -137,20 +219,91 @@ def decrypt(encryptedString):
 
     #try most probable values of potMD5Total first
     for j in [240+int((i+1)/2)*(-1)**i for i in range(31)] + list(reversed(range(225))): #[240+int((i+1)/2)*(-1)**i for i in range(480) if 0<=240+int((i+1)/2)*(-1)**i<=255]
-        potentialClearChars=generateClearCharsList(len(encryptedString))
-        potPasswordMD5=generatePasswordMD5()
-        print "potMD5Total:",potMD5Total
-        for position in range(len(encryptedString)):
-            print "position:", position
-            refinePotentialClearChars(potentialClearChars,potPasswordMD5,potMD5Total,encryptedString,position)
-            if not potentialClearChars[position]:
-                break
-            refinePotentialPasswordMD5(potentialClearChars,potPasswordMD5,potMD5Total,encryptedString,position)
-            if not potPasswordMD5[position%32]:
-                break
-            potMD5Total=iterate #!!!!!!!!!!!!!!!!
-
-    
-    
-    return strString
+        try:
+            potentialClearChars=generateClearCharsList(len(encryptedString))
+            potPasswordMD5=generatePasswordMD5()
+            potMD5Total=generateMD5Total(len(encryptedString),init_val=j)
+            print "potMD5Total:",j
+            for position in range(len(encryptedString)):
+                print "position:", position
+                for i in range(position):
+                    refine([potentialClearChars,potPasswordMD5,potMD5Total,encryptedString],position=position)
+                #if position%20 in [3,7,8,9,10,11,16,17,18,19]:
+                #    for i in list(reversed(range(position-1))):
+                #        refine([potentialClearChars,potPasswordMD5,potMD5Total,encryptedString],position=position,way='backward')
+                print 'Potential chars: '+str(potentialClearChars[position])
+            found_possib = 1
+            for position in range(len(encryptedString)):
+                found_possib *= len(potentialClearChars[position])
+            if found_possib == 1:
+                s = gen_begin_strings(potentialClearChars,len(potentialClearChars))
+                print 'FOUND for init_value = '+str(j)+' : '+s
+        except Exception as e:
+            if e.args[0] == 'Bachata':
+                print '0 possibilities for init_val = '+str(j)
+            else:
+                raise
+    return 'finished without finding anything?'
 # ----Main
+
+
+class CodeToDecrypt(object):
+    def __init__(self, code=[-166,-153,-114,-191,-151,-185,-156,-156,-159,-151,-130,-180,-164,-166,-169,-152,-162,-163,-132,-238,-114,-190,-136,-195,-191,-167,-177,-204,-131,-185,-118,-183,-106,-197,-159,-192,-188,-194,-168,-188,-137,-85,-172,-187,-125,-189,-187,-165,-132,-118,-163,-208,-164,-151,-194,-146,-228,-160,-178,-243,-119,-142,-163,-212,-148,-72,-169,-137,-129,-202,-172,-218,-176,-113,-220,-167,-182,-212,-175,-221,-134,-143,-130,-116,-125,-128,-149,-184,-100,-184,-162,-187,-153,-132,-172,-176,-204,-186,-188,-204]):
+        self.code = code
+        self.pot_char = generateClearCharsList(len(code))
+        self.pot_pass = generatePasswordMD5()
+        self.remaining_init_values = [240+int((i+1)/2)*(-1)**i for i in range(480) if 0<=240+int((i+1)/2)*(-1)**i<=255]
+        self.init_value = self.remaining_init_values.pop(0)
+        self.pot_total = generateMD5Total(len(self.code),init_val=self.init_value)
+
+    def nb_possibilities(self):
+        ans = 1
+        for position in range(len(self.code)):
+                ans *= len(self.pot_char[position])
+        return ans
+
+    def next_init_value(self):
+        self.pot_total = generateMD5Total(len(self.code),init_val=self.remaining_init_values.pop(0))
+        self.pot_char = generateClearCharsList(len(code))
+        self.pot_pass = generatePasswordMD5()
+
+    def test(self):
+        try:
+            potentialClearChars=self.pot_char
+            potPasswordMD5=self.pot_pass
+            potMD5Total=self.pot_total
+            encryptedString = self.code
+            print "potMD5Total:",self.init_value
+            for position in range(len(encryptedString)):
+                print "position:", position
+                for i in range(position+1):
+                    refine([potentialClearChars,potPasswordMD5,potMD5Total,encryptedString],position=position)
+                if True: #position%20 in [3,7,8,9,10,11,16,17,18,19]:
+                    for i in list(reversed(range(position))):
+                        refine([potentialClearChars,potPasswordMD5,potMD5Total,encryptedString],position=position,way='backward')
+                print 'Potential chars: '+str(potentialClearChars[position])
+                print 'Potential Pass hex: '+str(potPasswordMD5[position])
+                print '# Potential MD5total: '+str(len(potMD5Total[position]))
+            found_possib = 1
+            for position in range(len(encryptedString)):
+                found_possib *= len(potentialClearChars[position])
+            if found_possib == 1:
+                s = gen_begin_strings(potentialClearChars,len(potentialClearChars))
+                print 'FOUND for init_value = '+str(j)+' : '+s
+        except Exception as e:
+            if e.args[0] == 'Bachata':
+                print '0 possibilities for init_val = '+str(j)
+            else:
+                raise
+        return 'finished without finding anything?'
+
+
+
+
+if __name__ == '__main__':
+    code = [-166,-153,-114,-191,-151,-185,-156,-156,-159,-151,-130,-180,-164,-166,-169,-152,-162,-163,-132,-238,-114,-190,-136,-195,-191,-167,-177,-204,-131,-185,-118,-183,-106,-197,-159,-192,-188,-194,-168,-188,-137,-85,-172,-187,-125,-189,-187,-165,-132,-118,-163,-208,-164,-151,-194,-146,-228,-160,-178,-243,-119,-142,-163,-212,-148,-72,-169,-137,-129,-202,-172,-218,-176,-113,-220,-167,-182,-212,-175,-221,-134,-143,-130,-116,-125,-128,-149,-184,-100,-184,-162,-187,-153,-132,-172,-176,-204,-186,-188,-204]
+    code_obj = CodeToDecrypt(code)
+    code.test()
+
+
+
