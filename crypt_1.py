@@ -162,6 +162,8 @@ def gen_begin_strings(potentialClearChars,pos_max):
         for j in potentialClearChars[i]:
             for k in ans:
                 temp_ans.append(k + j)
+                if len(temp_ans)>10**7:
+                    raise Exception('Ta Ram va me remercier')
         ans = temp_ans
     return ans
 
@@ -334,14 +336,15 @@ def test():
     test_str = '0Z0-0Z0-OEM-0Z0-1.1\n'+'0Z0-0Z0-OEM-0Z0-1.1\n'+'0Z0-0Z0-OEM-0Z0-1.1\n'+'0Z0-0Z0-OEM-0Z0-1.1\n'+'0Z0-0Z0-OEM-0Z0-1.1\n'
     passw = 'leanaperd'
     enc = encryptString(test_str,passw)
-    code = CodeToDecrypt(chars=['0','Z'],code=enc,dist_max=100)
+    code = CodeToDecrypt(chars=['0','A','Z'],code=enc,dist_max=100)
+    #code = CodeToDecrypt(code=enc,dist_max=40)
     code.decrypt()
     return code
 
 if __name__ == '__main__':
     #code = [-166,-153,-114,-191,-151,-185,-156,-156,-159,-151,-130,-180,-164,-166,-169,-152,-162,-163,-132,-238,-114,-190,-136,-195,-191,-167,-177,-204,-131,-185,-118,-183,-106,-197,-159,-192,-188,-194,-168,-188,-137,-85,-172,-187,-125,-189,-187,-165,-132,-118,-163,-208,-164,-151,-194,-146,-228,-160,-178,-243,-119,-142,-163,-212,-148,-72,-169,-137,-129,-202,-172,-218,-176,-113,-220,-167,-182,-212,-175,-221,-134,-143,-130,-116,-125,-128,-149,-184,-100,-184,-162,-187,-153,-132,-172,-176,-204,-186,-188,-204]
-    #code_obj = CodeToDecrypt(code)
-    #code.step()
+    #code_obj = CodeToDecrypt(code=code,dist_max=60)
+    #code_obj.decrypt()
     test()
 
 
