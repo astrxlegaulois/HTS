@@ -31,14 +31,20 @@ def encryptString(strString, strPassword):
     print "new intMD5Total",intMD5Total
     arrEncryptedValues=[]
     intStrlen = len(strString)
+    str_list = []
     for i in range(intStrlen):
+        if strString[i] == 'n' and str_list[-1] == '\\':
+            str_list[-1] = '\n'
+        else:
+            str_list.append(strString[i])
+    for i in range(len(str_list)):
         print "i: ",i
-        print "char to encode: ",ord(strString[i:i+1])
+        print "char to encode: ",ord(str_list[i])
         print "passMd5contrib: ",int(strPasswordMD5[i%32],16)
-        arrEncryptedValues.append(ord(strString[i:i+1])+int(strPasswordMD5[i%32],16)-int(intMD5Total))
-        print "left part: ",md5.new(strString[0:i+1]).hexdigest()[0:16]
+        arrEncryptedValues.append(ord(str_list[i])+int(strPasswordMD5[i%32],16)-int(intMD5Total))
+        print "left part: ",md5.new(''.join(str_list[0:i+1])).hexdigest()[0:16]
         print "right part: ",md5.new(str(intMD5Total)).hexdigest()[0:16]
-        intMD5Total = evalCrossTotal(md5.new(strString[0:i+1]).hexdigest()[0:16] + md5.new(str(intMD5Total)).hexdigest()[0:16])
+        intMD5Total = evalCrossTotal(md5.new(''.join(str_list[0:i+1])).hexdigest()[0:16] + md5.new(str(intMD5Total)).hexdigest()[0:16])
         print "new intMD5Total: ",intMD5Total
     return arrEncryptedValues
 
@@ -58,7 +64,7 @@ def getPotentialClearCharsAtPosition(position,chars=[str(i) for i in range(10)]+
     Returns all the possible unencrypted chars of the string at the specified position
     """
     ans=[]
-    if ((position % 20 == 3 or position % 20 == 7) or position % 20 == 11):
+    if position % 20 in [3, 7, 11, 15]:
         ans.append("-")
     elif position%20 == 8 :
         ans.append("O")
@@ -101,11 +107,11 @@ def generateMD5Total(length=100, init_val=None):
     returns the initial list of potential md5Total
     """
     if init_val is None:
-        ans = [range(256)]
+        ans = [range(481)]
     else:
         ans = [[init_val]]
     for i in range(length-1):
-        ans.append(range(256))
+        ans.append(range(480))
     return ans
 
 def refinePotentialClearChars(potentialClearChars,potPasswordMD5,potMD5Total,encryptedText,position):
@@ -219,7 +225,7 @@ def decrypt(encryptedString):
 
 
     #try most probable values of potMD5Total first
-    for j in [240+int((i+1)/2)*(-1)**i for i in range(31)] + list(reversed(range(225))): #[240+int((i+1)/2)*(-1)**i for i in range(480) if 0<=240+int((i+1)/2)*(-1)**i<=255]
+    for j in [240+int((i+1)/2)*(-1)**i for i in range(481)]:# + list(reversed(range(225))): #[240+int((i+1)/2)*(-1)**i for i in range(480) if 0<=240+int((i+1)/2)*(-1)**i<=255]
         try:
             potentialClearChars=generateClearCharsList(len(encryptedString))
             potPasswordMD5=generatePasswordMD5()
@@ -254,7 +260,7 @@ class CodeToDecrypt(object):
         self.chars = chars
         self.pot_char = generateClearCharsList(len(code),chars=chars)
         self.pot_pass = generatePasswordMD5()
-        self.remaining_init_values = [240+int((i+1)/2)*(-1)**i for i in range(480) if 0<=240+int((i+1)/2)*(-1)**i<=255]
+        self.remaining_init_values = [240+int((i+1)/2)*(-1)**i for i in range(481)]
         self.init_value = self.remaining_init_values.pop(0)
         self.pot_total = generateMD5Total(len(self.code),init_val=self.init_value)
 
@@ -314,9 +320,14 @@ class CodeToDecrypt(object):
 
 
 if __name__ == '__main__':
-    code = [-166,-153,-114,-191,-151,-185,-156,-156,-159,-151,-130,-180,-164,-166,-169,-152,-162,-163,-132,-238,-114,-190,-136,-195,-191,-167,-177,-204,-131,-185,-118,-183,-106,-197,-159,-192,-188,-194,-168,-188,-137,-85,-172,-187,-125,-189,-187,-165,-132,-118,-163,-208,-164,-151,-194,-146,-228,-160,-178,-243,-119,-142,-163,-212,-148,-72,-169,-137,-129,-202,-172,-218,-176,-113,-220,-167,-182,-212,-175,-221,-134,-143,-130,-116,-125,-128,-149,-184,-100,-184,-162,-187,-153,-132,-172,-176,-204,-186,-188,-204]
-    code_obj = CodeToDecrypt(code)
-    code.test()
+    #code = [-166,-153,-114,-191,-151,-185,-156,-156,-159,-151,-130,-180,-164,-166,-169,-152,-162,-163,-132,-238,-114,-190,-136,-195,-191,-167,-177,-204,-131,-185,-118,-183,-106,-197,-159,-192,-188,-194,-168,-188,-137,-85,-172,-187,-125,-189,-187,-165,-132,-118,-163,-208,-164,-151,-194,-146,-228,-160,-178,-243,-119,-142,-163,-212,-148,-72,-169,-137,-129,-202,-172,-218,-176,-113,-220,-167,-182,-212,-175,-221,-134,-143,-130,-116,-125,-128,-149,-184,-100,-184,-162,-187,-153,-132,-172,-176,-204,-186,-188,-204]
+    #code_obj = CodeToDecrypt(code)
+    #code.step()
+    test_str = 'ABA-ABA'
+    passw = 'leanaperd'
+    enc = encryptString(test_str,passw)
+    code = CodeToDecrypt(chars=['A','B'],code=enc)
+    code.decrypt()
 
 
 
