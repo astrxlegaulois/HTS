@@ -53,7 +53,7 @@ def getMd5Tables():
         ans.append(md5.new(str(i)).hexdigest())
     return ans
 
-def getPotentialClearCharsAtPosition(position):
+def getPotentialClearCharsAtPosition(position,chars=[str(i) for i in range(10)]+[chr(i) for i in range(ord("A"),ord("Z")+1)]):
     """
     Returns all the possible unencrypted chars of the string at the specified position
     """
@@ -73,19 +73,16 @@ def getPotentialClearCharsAtPosition(position):
     elif position%20 == 19 :
         ans.append("\n")
     else:
-        for i in range(0,10):
-            ans.append(str(i))
-        for i in range(ord("A"),ord("Z")+1):
-            ans.append(chr(i))
+        ans += chars
     return ans
 
-def generateClearCharsList(length=100):
+def generateClearCharsList(length=100,chars=[str(i) for i in range(10)]+[chr(i) for i in range(ord("A"),ord("Z")+1)]):
     """
     Returns the initial list of potential characters
     """
     ans=[]
     for i in range(length):
-        ans.append(getPotentialClearCharsAtPosition(i))
+        ans.append(getPotentialClearCharsAtPosition(i,chars=chars))
     return ans
 
 def generatePasswordMD5():
@@ -166,6 +163,8 @@ def forward_refinePotentialMD5Total(potentialClearChars,potPasswordMD5,potMD5Tot
     """
     Removes all impossible values at given position for potMD5Total given the potentialClearChars, the potPasswordMD5, and the encrypted values
     """
+    if position>=len(potMD5Total):
+        return None
     init_set = set(potMD5Total[position])
     val_set = set()
     for s in gen_begin_strings(potentialClearChars,position):
@@ -183,6 +182,8 @@ def backward_refinePotentialMD5Total(potentialClearChars,potPasswordMD5,potMD5To
     """
     Backwards removal of all impossible values at given position for potMD5Total given the potentialClearChars, the potPasswordMD5, and the encrypted values
     """
+    if position+1>=len(potMD5Total):
+        return None
     for j in [i for i in potMD5Total[position]]:
         try:
             for k in potentialClearChars[position+1]:
@@ -248,9 +249,10 @@ def decrypt(encryptedString):
 
 
 class CodeToDecrypt(object):
-    def __init__(self, code=[-166,-153,-114,-191,-151,-185,-156,-156,-159,-151,-130,-180,-164,-166,-169,-152,-162,-163,-132,-238,-114,-190,-136,-195,-191,-167,-177,-204,-131,-185,-118,-183,-106,-197,-159,-192,-188,-194,-168,-188,-137,-85,-172,-187,-125,-189,-187,-165,-132,-118,-163,-208,-164,-151,-194,-146,-228,-160,-178,-243,-119,-142,-163,-212,-148,-72,-169,-137,-129,-202,-172,-218,-176,-113,-220,-167,-182,-212,-175,-221,-134,-143,-130,-116,-125,-128,-149,-184,-100,-184,-162,-187,-153,-132,-172,-176,-204,-186,-188,-204]):
+    def __init__(self, chars=[str(i) for i in range(10)]+[chr(i) for i in range(ord("A"),ord("Z")+1)],code=[-166,-153,-114,-191,-151,-185,-156,-156,-159,-151,-130,-180,-164,-166,-169,-152,-162,-163,-132,-238,-114,-190,-136,-195,-191,-167,-177,-204,-131,-185,-118,-183,-106,-197,-159,-192,-188,-194,-168,-188,-137,-85,-172,-187,-125,-189,-187,-165,-132,-118,-163,-208,-164,-151,-194,-146,-228,-160,-178,-243,-119,-142,-163,-212,-148,-72,-169,-137,-129,-202,-172,-218,-176,-113,-220,-167,-182,-212,-175,-221,-134,-143,-130,-116,-125,-128,-149,-184,-100,-184,-162,-187,-153,-132,-172,-176,-204,-186,-188,-204]):
         self.code = code
-        self.pot_char = generateClearCharsList(len(code))
+        self.chars = chars
+        self.pot_char = generateClearCharsList(len(code),chars=chars)
         self.pot_pass = generatePasswordMD5()
         self.remaining_init_values = [240+int((i+1)/2)*(-1)**i for i in range(480) if 0<=240+int((i+1)/2)*(-1)**i<=255]
         self.init_value = self.remaining_init_values.pop(0)
@@ -263,11 +265,12 @@ class CodeToDecrypt(object):
         return ans
 
     def next_init_value(self):
-        self.pot_total = generateMD5Total(len(self.code),init_val=self.remaining_init_values.pop(0))
-        self.pot_char = generateClearCharsList(len(code))
+        self.init_value = self.remaining_init_values.pop(0)
+        self.pot_total = generateMD5Total(len(self.code),init_val=self.init_value)
+        self.pot_char = generateClearCharsList(len(self.code),chars=self.chars)
         self.pot_pass = generatePasswordMD5()
 
-    def test(self):
+    def step(self):
         try:
             potentialClearChars=self.pot_char
             potPasswordMD5=self.pot_pass
@@ -292,11 +295,21 @@ class CodeToDecrypt(object):
                 print 'FOUND for init_value = '+str(j)+' : '+s
         except Exception as e:
             if e.args[0] == 'Bachata':
-                print '0 possibilities for init_val = '+str(j)
+                print '0 possibilities for init_val = '+str(self.init_value)
             else:
                 raise
         return 'finished without finding anything?'
 
+    def decrypt(self,steps=None):
+        if steps is None:
+            steps = len(self.remaining_init_values)+1
+        for i in range(min(steps,len(self.remaining_init_values))+1):
+            self.step()
+            if self.nb_possibilities() == 1:
+                print 'FOUND!'
+                break
+            if self.remaining_init_values:
+                self.next_init_value()
 
 
 
