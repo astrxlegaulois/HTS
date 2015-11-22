@@ -253,6 +253,17 @@ def decrypt(encryptedString):
             else:
                 raise
     return 'finished without finding anything?'
+
+def probas_output_sample(output):
+    ans = {}
+    for i in range(len(output)):
+        if output[i] not in ans.keys():
+            ans[output[i]] = 1
+        else:
+            ans[output[i]] +=1
+    print ans
+    return ans
+
 # ----Main
 
 
@@ -345,7 +356,22 @@ if __name__ == '__main__':
     #code = [-166,-153,-114,-191,-151,-185,-156,-156,-159,-151,-130,-180,-164,-166,-169,-152,-162,-163,-132,-238,-114,-190,-136,-195,-191,-167,-177,-204,-131,-185,-118,-183,-106,-197,-159,-192,-188,-194,-168,-188,-137,-85,-172,-187,-125,-189,-187,-165,-132,-118,-163,-208,-164,-151,-194,-146,-228,-160,-178,-243,-119,-142,-163,-212,-148,-72,-169,-137,-129,-202,-172,-218,-176,-113,-220,-167,-182,-212,-175,-221,-134,-143,-130,-116,-125,-128,-149,-184,-100,-184,-162,-187,-153,-132,-172,-176,-204,-186,-188,-204]
     #code_obj = CodeToDecrypt(code=code,dist_max=60)
     #code_obj.decrypt()
-    test()
 
+    #test()
+    with open('output_sample','r') as f:
+        output = f.read()
+    probas_output_sample(output)
+    print sum([ord(j) for j in output])/15
+    print sum([ord(j) for j in output])/15
+    print sum([ord(j) for j in output])/15
+    with open('output_sample','r') as f:
+        output = f.readlines()
+    for i in output:
+        print sum([ord(j) for j in i])
 
+    ll = [str(i) for i in range(10)]+[chr(i) for i in range(ord('A'),ord('Z')+1)]
+    lll = range(ord('0'),ord('9')+1)+range(ord('A'),ord('Z')+1)
+    exp = sum(lll)/len(lll)
+    offset = ord('O')+ord('E')+ord('M')+4*ord('-')+2*ord('1')+ord('\n')
+    print offset + 10*exp
 
