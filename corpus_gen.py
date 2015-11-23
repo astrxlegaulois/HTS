@@ -13,7 +13,7 @@ def gen_corpus(pot_char=generateClearCharsList(), pot_pass=generatePasswordMD5()
 			clear += random.choice(pot_char[i])
 		for i in range(len(pot_pass)):
 			passw += random.choice(pot_pass[i])
-		enc = encryptString(clear,md5=passw)
+		enc = encryptString(clear,md5_p=passw)
 		text += clear
 		text += sep1
 		text += passw

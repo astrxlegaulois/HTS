@@ -21,14 +21,14 @@ def evalCrossTotal(strMD5):
 			# print v,ord(v)-ord('0')
 	return intTotal
 
-def encryptString(strString, passw=None, md5=None):
+def encryptString(strString, passw=None, md5_p=None):
     """
     Encrypts a string
     """
     if passw is not None:
         strPasswordMD5 = md5.new(passw).hexdigest() #or use digest() ??
-    elif md5 is not None:
-        strPasswordMD5 = md5
+    elif md5_p is not None:
+        strPasswordMD5 = md5_p
     else:
         raise IOError('password or md5 needed')
     print "strPasswordMD5",strPasswordMD5
