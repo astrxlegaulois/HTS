@@ -53,6 +53,24 @@ def encryptString(strString, passw=None, md5_p=None):
         print "new intMD5Total: ",intMD5Total
     return arrEncryptedValues
 
+def decryptString(encString, passw=None, md5_p=None):
+    """
+    Decrypts a string, provided password or md5 of password
+    """
+    if passw is not None:
+        strPasswordMD5 = md5.new(passw).hexdigest() #or use digest() ??
+    elif md5_p is not None:
+        strPasswordMD5 = md5_p
+    else:
+        raise IOError('password or md5 needed')
+    intMD5Total = evalCrossTotal(strPasswordMD5)
+    ans = ''
+    intStrlen = len(encString)
+    for i in range(len(encString)):
+        ans += chr(-(int(strPasswordMD5[i%32],16)-int(intMD5Total) - encString[i]))
+        intMD5Total = evalCrossTotal(md5.new(ans).hexdigest()[0:16] + md5.new(str(intMD5Total)).hexdigest()[0:16])
+    return ans
+
 # ----Fonctions de decryptage
 
 def getMd5Tables():
