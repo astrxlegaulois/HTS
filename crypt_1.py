@@ -67,7 +67,10 @@ def decryptString(encString, passw=None, md5_p=None):
     ans = ''
     intStrlen = len(encString)
     for i in range(len(encString)):
-        ans += chr(-(int(strPasswordMD5[i%32],16)-int(intMD5Total) - encString[i]))
+        try:
+            ans += chr(-(int(strPasswordMD5[i%32],16)-int(intMD5Total) - encString[i]))
+        except ValueError:
+            return ans
         intMD5Total = evalCrossTotal(md5.new(ans).hexdigest()[0:16] + md5.new(str(intMD5Total)).hexdigest()[0:16])
     return ans
 

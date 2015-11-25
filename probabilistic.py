@@ -83,15 +83,14 @@ def update_md5tot_proba_forward(enc, init, passw, strng, weight=0, previous=None
 		return {evalCrossTotal(passw):1.}
 	ans = {}
 	for prev_k in previous.keys():
-
-			k = evalCrossTotal(md5.new(strng).hexdigest()[0:16] + md5.new(str(prev_k)).hexdigest()[0:16])
-			if k not in ans.keys() and k in init.keys():
-				ans[k] = 0.
-				try:
-					ans[k] += previous[prev_k]
-				except KeyError:
-					if ans[k] == 0.:
-						del ans[k]
+		k = evalCrossTotal(md5.new(strng).hexdigest()[0:16] + md5.new(str(prev_k)).hexdigest()[0:16])
+		if k not in ans.keys() and k in init.keys():
+			ans[k] = 0.
+			try:
+				ans[k] += previous[prev_k]
+			except KeyError:
+				if ans[k] == 0.:
+					del ans[k]
 	normalize(ans)
 	if weight != 0:
 		for k in ans.keys():
@@ -158,13 +157,18 @@ class ProbabilisticCode(CodeToDecrypt):
 			self.md5tot_p.append(md5tot_p_init)
 			self.clearchars_p.append(init_clearchars_p(i,chars=self.chars))
 
+
 	def compute_pass_probas(self,weight=0,only_known=False):
 		if only_known:
 			seq = [i for i in range(len(self.code)) if i%20 in [3,7,8,9,10,11,15,16,17,18,19]]
 		else:
 			seq = range(len(self.code))
 		for i in seq:
-			self.pass_p[i%32] = update_pass_proba(enc=self.code[i], chars_p=self.clearchars_p[i], md5tot_p=self.md5tot_p[i], init=self.pass_p[i%32], weight=weight)
+			if i<32 and only_known:
+				w = 0
+			else:
+				w = weight
+			self.pass_p[i%32] = update_pass_proba(enc=self.code[i], chars_p=self.clearchars_p[i], md5tot_p=self.md5tot_p[i], init=self.pass_p[i%32], weight=w)
 
 	def compute_chars_probas(self,weight=0):
 		for i in range(len(self.code)):
@@ -175,7 +179,7 @@ class ProbabilisticCode(CodeToDecrypt):
 			self.md5tot_p[i] = update_md5tot_proba(enc=self.code[i], init=self.md5tot_p[i], pass_p=self.pass_p[i%32], chars_p=self.clearchars_p[i], weight=weight)
 
 	def compute_md5tot_probas_forward(self, weight=0):
-		self.md5tot_p[0] = update_md5tot_proba_forward(enc=self.code[i], init=self.md5tot_p[i+1], previous=None, passw=self.guess_pass(), strng=self.guess_string()[:i+1], weight=weight)
+		self.md5tot_p[0] = update_md5tot_proba_forward(enc=self.code[0], init=self.md5tot_p[1], previous=None, passw=self.guess_pass(), strng=self.guess_string()[0], weight=weight)
 		for i in range(len(self.code)-1):
 			self.md5tot_p[i+1] = update_md5tot_proba_forward(enc=self.code[i], init=self.md5tot_p[i+1], previous=self.md5tot_p[i], passw=self.guess_pass(), strng=self.guess_string()[:i+1], weight=weight)
 
@@ -189,7 +193,7 @@ class ProbabilisticCode(CodeToDecrypt):
 			for i in range(32):
 				items = self.pass_p[i].items()
 				if not maximum:
-					pass_md5 += np.random.choice([i for i,j in items], p=[j for i,j in items])
+					pass_md5 += np.random.choice([i for i,j in items], p=[j**2 for i,j in items])
 				else:
 					p_max = max([j for i,j in items])
 					pass_md5 += np.random.choice([i for i,j in items if j == p_max])
@@ -203,7 +207,7 @@ class ProbabilisticCode(CodeToDecrypt):
 			for i in range(len(self.code)):
 				items = self.clearchars_p[i].items()
 				if not maximum:
-					ans += np.random.choice([i for i,j in items], p=[j for i,j in items])
+					ans += np.random.choice([i for i,j in items], p=[j**2 for i,j in items])
 				else:
 					p_max = max([j for i,j in items])
 					ans += np.random.choice([i for i,j in items if j == p_max])
@@ -219,34 +223,48 @@ class ProbabilisticCode(CodeToDecrypt):
 
 
 
+if __name__ == '__main__':
 
+	md5_p = 'aef556ea6cba13581556ea6cba135815'
+	clearchars = '0Z0-0Z0-OEM-0Z0-1.1\n'+'0Z0-0Z0-OEM-0Z0-1.1\n'+'0Z0-0Z0-OEM-0Z0-1.1\n'+'0Z0-0Z0-OEM-0Z0-1.1\n'+'0Z0-0ZA-OEM-0ZA-1.1\n'
+	enc = encryptString(clearchars,md5_p=md5_p)
 
-md5_p = 'aef556ea6cba13581556ea6cba135815'
-clearchars = '0Z0-0Z0-OEM-0Z0-1.1\n'+'0Z0-0Z0-OEM-0Z0-1.1\n'+'0Z0-0Z0-OEM-0Z0-1.1\n'+'0Z0-0Z0-OEM-0Z0-1.1\n'+'0Z0-0Z0-OEM-0Z0-1.1\n'
-enc = encryptString(clearchars,md5_p=md5_p)
-
-code = ProbabilisticCode(code=enc,chars=['0','D','Z'])
-print 'guessed:    '+ code.guess_string()
-#code.compute_md5tot_probas()#weight=1)
-code.compute_pass_probas(only_known=True)#weight=1)
-print 'original:'+md5_p
-print 'guessed :'+code.guess_pass()
-for i in range(100):
-	code.compute_chars_probas()#weight=1)
-	#code.compute_md5tot_probas_forward()
-	#code.compute_md5tot_probas()
-	#code.compute_pass_probas()#weight=1)
-	print 'original: '+md5_p
-	passmd5 = code.guess_pass()
-	print 'guessed : '+passmd5
-	try:
-		decr = code.decrypt(passmd5)
-	except ValueError:
-		decr = ''
-	print 'decrypted : '+ decr
+	code = ProbabilisticCode(code=enc,chars=['0','A','Z'])
+	#code = ProbabilisticCode()
 	print 'guessed:    '+ code.guess_string()
-print code.pass_p[-1]
-print code.clearchars_p[-10:]
+	#code.compute_md5tot_probas()#weight=1)
+	code.compute_pass_probas()#only_known=True,weight=1)#weight=1)
+	print 'original:'+md5_p
+	print 'guessed :'+code.guess_pass()
+	for i in range(10):
+		code.compute_chars_probas()#weight=1)
+		#code.compute_md5tot_probas_forward()
+		code.compute_md5tot_probas()
+		code.compute_pass_probas()#weight=1)
+		print 'original: '+md5_p
+		passmd5 = code.guess_pass(maximum=True)
+		print 'guessed : '+passmd5
+		decr = code.decrypt(passmd5)
+		print 'decrypted : '+ decr
+		print 'guessed:    '+ code.guess_string(maximum=True)
+	print code.pass_p[-1]
+	print code.clearchars_p[1]
+
+	p = 1
+	for i in range(len(clearchars)):
+		p *= code.clearchars_p[i][clearchars[i]]
+	print p
+	p = 1
+	for i in range(len(md5_p)):
+		p *= code.pass_p[i][md5_p[i]]
+	print p
+
+	p = 1
+	for i in range(len(clearchars[-20:])):
+		p *= code.clearchars_p[i][clearchars[-20+i]]
+	print p
+
+
 
 
 #def get_pass_proba(enc,char):
