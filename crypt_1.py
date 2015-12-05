@@ -4,8 +4,10 @@
 # ----Imports
 import md5
 import array
-# ----Fonctions originales traduites en python
+import itertools
+import string
 
+# ----Fonctions originales traduites en python
 
 def evalCrossTotal(strMD5):
 	"""
@@ -53,6 +55,7 @@ def encryptString(strString, passw=None, md5_p=None):
         print "new intMD5Total: ",intMD5Total
     return arrEncryptedValues
 
+# ----Fonctions de decryptage
 def decryptString(encString, passw=None, md5_p=None):
     """
     Decrypts a string, provided password or md5 of password
@@ -74,7 +77,35 @@ def decryptString(encString, passw=None, md5_p=None):
         intMD5Total = evalCrossTotal(md5.new(ans).hexdigest()[0:16] + md5.new(str(intMD5Total)).hexdigest()[0:16])
     return ans
 
-# ----Fonctions de decryptage
+
+def passwordsGenerator(charset, maxlength):
+    """
+    Generates all possible passwords of a certain length and charset
+    Wiwi, you will love the syntax...
+    """
+    return (''.join(candidate)
+        for candidate in itertools.chain.from_iterable(itertools.product(charset, repeat=i)
+        for i in range(1, maxlength + 1)))
+
+def bruteForce(encString, passSize):
+    """
+    Bruteforces the decryption trying all passwords of the specified size. A password is considered valid if the first known decoded char is correct
+    """
+    ans="not found"
+    for attempt in passwordsGenerator(string.ascii_letters, passSize): #think of string.digits as well or worst case : string.printable
+        #print "REMOVE ME TO TUN FASTER ! attempt :",attempt
+        decryptionSuperShort=decryptString(encString[0:4], attempt,None)
+        if len(decryptionSuperShort)==4:
+            if "-"==decryptionSuperShort[3]:
+                print "matching first - with attempt :",attempt
+                decryptionShort=decryptString(encString[0:12], attempt,None)
+                if len(decryptionShort)==12:
+                    if "-OEM-"==decryptionShort[7:12]:
+                        ans=attempt
+                        print "found ! decyphered text :",decryptString(encString, attempt,None)
+                        break
+    return ans
+    
 
 def getMd5Tables():
     """
