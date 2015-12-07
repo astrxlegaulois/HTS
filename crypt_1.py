@@ -90,9 +90,10 @@ def passwordsGenerator(charset, maxlength):
 def bruteForce(encString, passSize):
     """
     Bruteforces the decryption trying all passwords of the specified size. A password is considered valid if the first known decoded char is correct
+    Essayé sur l'exemple jusqu'à "iR4O}"
     """
     ans="not found"
-    for attempt in passwordsGenerator(string.ascii_letters, passSize): #think of string.digits as well or worst case : string.printable
+    for attempt in passwordsGenerator(string.printable, passSize): #think of string.ascii_letters or string.digits as well or worst case : string.printable
         #print "REMOVE ME TO TUN FASTER ! attempt :",attempt
         decryptionSuperShort=decryptString(encString[0:4], attempt,None)
         if len(decryptionSuperShort)==4:
