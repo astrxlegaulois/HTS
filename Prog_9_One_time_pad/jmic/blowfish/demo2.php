@@ -17,17 +17,30 @@ body {
 <br>
 <?php
 include("blowfish.php");
-$text = "5,1,2,4,7,1,9,3,8,4,5,1,3,6,1,8,2,3,3,5,9,1,2,2,";
-echo "</br>Sudoku solution:";
-echo $text;
-$key = "blowfish";
-keys($key); //Schlüssel Definieren
+include("sudoku_seb.php");
+$text = "6,5,,7,8,,,2,,3,,,,,,7,,9,9,,,1,2,,4,5,6,2,1,9,3,4,5,6,7,8,5,,,6,7,8,9,1,,8,7,6,9,1,2,3,4,5,7,6,,8,9,1,,3,4,4,3,2,,6,7,8,,1,1,9,8,,,,5,6,";
+echo "</br>Sudoku reading:";
+$sudoku=initSudoku($text);
+echo $sudoku;
+echo "</br>Sudoku solving:";
+$sudoku=resolutionSimple($sudoku);
+echo $sudoku;
+echo "</br>Sudoku parsing:";
+$result=sudokuToString($sudoku);
+echo $result;
+echo "</br>Sha1:";
+$result=sha1($result);
+echo $result;
+echo "</br>Blowfish key generation:";
+keys($result); //Schlüssel Definieren
 echo "</br>key:";
 echo $key;
-$text = blowfish_crypt($text); //Verschlüsseln
+echo "</br>Blowfish key generation:";
+//$text = blowfish_crypt($text); //Verschlüsseln
+$encrypted="Vm6c7wAK15IeEvUBshqV2g==";
 echo "</br>Verschlüsseln Text:";
-echo $text;
-$text = blowfish_decrypt($text); //Entschlüsseln
+echo $encrypted;
+$decrypted = blowfish_decrypt($encrypted); //Entschlüsseln
 echo "</br>Unverschlüsselter Text:";
-echo $text;
+echo $decrypted;
 ?>

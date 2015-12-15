@@ -205,7 +205,7 @@
 //Verschlüsselungsmodus / Encryptionmode:
 //EBC: 0
 //CBC: 1
-define("CBC",0);
+define("CBC",1);
 
 //Einen Text in Longzahlen umwandeln
 //Covert a string into longinteger
@@ -232,7 +232,8 @@ function keys($key)
     {
     global $pbox,$sbox0,$sbox1,$sbox2,$sbox3;
     $key_md5 = md5($key);
-
+    //$key_md5 = sha1($key);
+    
     //Füllt den $key auf 16 Stellen auf
     //Convert the $key into a 16Byte key
     $key = _str2long(substr(str_pad($key, 16, $key_md5),0,16));
@@ -244,11 +245,11 @@ function keys($key)
        $pbox[$i] ^= $key[$i%4];
        }
 
-    $v[0] = 0x00000000;
-    $v[1] = 0x00000000;
+    $v[0] = 0x00000000;  //PQ c'est vide ?????
+    $v[1] = 0x00000000;  //PQ c'est vide ?????
 
     //P-Box durch verschlüsselte Nullbit Blöcke ersetzen. In der nächsten Runde das Resultat erneut verschlüsseln
-    //Encrypt Nullbit Blocks and replace the Pbox with the Chiffre. Next round, encrypt the result
+    //Encrypt Nullbit Blocks and replace the Pbox with the Chiffre. Next round, the result renews the key
     for($i=0;$i<count($pbox);$i+=2)
         {
         $v = block_encrypt(array($v[0],$v[1]));
